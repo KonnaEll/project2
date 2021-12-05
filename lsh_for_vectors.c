@@ -9,47 +9,7 @@
 #include "lsh_funcs.h"
 
 
-double** grid_to_vector(double** curves, double delta, int input_items_counter, int dimension, float* t)
-{
-    double** vector = malloc(sizeof(double*) * input_items_counter);
-    for(int i=0; i<input_items_counter; i++)
-    {
-        vector[i] = malloc(sizeof(double) * dimension);
-        for(int j=0; j<dimension; j++)
-            vector[i][j] = 3*dimension;
-    }
-
-    double G[dimension];
-    int flag, count;
-    for(int i=0; i<input_items_counter; i++)
-    {
-        count = 0;
-        for(int j=0; j<dimension; j++)
-        {
-            flag = 0;
-            G[j] = floor((curves[i][j] / delta) + 1/2) * delta;     // operation for grid
-            G[j] = G[j] + t[j];    // shift vector by t
-            
-            if(count > 0)
-            {
-                if((int)vector[i][count-1] == (int)G[j])
-                {
-                    flag = 1;
-                }
-            }
-            if(flag == 0)
-            {
-                vector[i][count] = G[j];
-                count++;
-            }
-        }
-    }
-
-    return vector;  // vector has the new vectors that are going to be in lsh
-}
-
-// void lsh_for_vectors(double** vectors, int input_items_counter, int dimension, int k, int L, char** names, FILE* query_file_ptr, FILE* output_file_ptr, double delta, double** curves, float* t, int n)
-void lsh_for_vectors(double** vectors, int input_items_counter, char** names, double** query_vectors, int query_items_counter, char** query_names, int dimension, double** curves, double** query_curves, FILE* output_file_ptr, int k, double delta, float* t, int n)
+void lsh_for_vectors(int input_items_counter, char** names, int query_items_counter, char** query_names, int dimension, double** curves, double** query_curves, FILE* output_file_ptr, int k, int n)
 {
     float** h_p_result = malloc(sizeof(float*) * input_items_counter); // array with the results of the h function
     for(int i=0; i<input_items_counter; i++)
@@ -59,7 +19,7 @@ void lsh_for_vectors(double** vectors, int input_items_counter, char** names, do
         srand(time(0));
         for(int j=0; j<k; j++)
         {
-            h_p_result[i][j] = h_function(vectors, i, dimension);   // h_function
+            h_p_result[i][j] = h_function(curves, i, dimension);   // h_function
         }
     }
 
@@ -97,11 +57,9 @@ void lsh_for_vectors(double** vectors, int input_items_counter, char** names, do
         data_item->name = malloc(sizeof(char*) + 1);
         data_item->name = names[i];    // fill it
         data_item->item = i;
-        data_item->ID = ID;
         if(hash_tables[hash_index] == NULL)  // put it in the list if list is empty
         {
             hash_tables[hash_index] = data_item;
-            hash_tables[hash_index]->ID = ID;
         }
         else    // put it after the last node of the list
         {
@@ -124,7 +82,7 @@ void lsh_for_vectors(double** vectors, int input_items_counter, char** names, do
         srand(time(0));
         for(int j=0; j<k; j++)
         {
-            h_q_result[i][j] = h_function(query_vectors, i, dimension);   // h_function
+            h_q_result[i][j] = h_function(query_curves, i, dimension);   // h_function
         }
     }
 
