@@ -9,7 +9,6 @@
 #include "lsh_for_vectors.h"
 #include "lsh_for_frechet.h"
 
-
 int main(int argc, char* argv[])
 {
     // parameters check
@@ -156,6 +155,56 @@ int main(int argc, char* argv[])
         }
     }
 
+    // for query file
+    FILE *query_file_ptr;
+    query_file_ptr = fopen(query_file, "r");    // open query file
+    if(query_file_ptr == NULL)
+    {
+        perror("Error\n");
+        exit(1);
+    }
+    int query_items_counter = 0;
+    for (c = getc(query_file_ptr); c != EOF; c = getc(query_file_ptr))  // count the items of the file query(axis x)
+    {
+        if (c == '\n')
+            query_items_counter = query_items_counter + 1;
+    }
+    rewind(query_file_ptr);
+    
+    // Work for query file
+    double** query_curves = malloc(sizeof(double*) * query_items_counter);    // array of the items of dataset
+    for(int i=0; i<query_items_counter; i++)
+        query_curves[i] = malloc(sizeof(double) * (dimension + 1));
+    
+    char** query_names = malloc(sizeof(char*) * query_items_counter);
+    for(int i=0; i<query_items_counter; i++)
+        query_names[i] = malloc(sizeof(char) * 20);
+
+    i = 0, j = 0, n = 0;
+    char* y = malloc(sizeof(char*) + 1);
+    fscanf(query_file_ptr, "%s", y);
+    strcpy(query_names[n], y);
+    while(fscanf(query_file_ptr, "%s", y) != EOF)     // fill the array with the dataset
+    {
+        query_curves[i][j] = atof(y);
+        j++;
+        if(j == dimension)
+        {
+            i++;
+            j = 0;
+            n++;
+            if(fscanf(query_file_ptr, "%s", y) != EOF)
+                strcpy(query_names[n], y);
+        }
+    }
+
+    FILE *output_file_ptr;
+    output_file_ptr = fopen(output_file, "w");    // open output file
+    if(output_file_ptr == NULL)
+    {
+        perror("Error\n");
+        exit(1);
+    }
 
     srand(time(0));
     if(strcmp(algorithm, "LSH") == 0)
@@ -163,21 +212,28 @@ int main(int argc, char* argv[])
         double** vectors = malloc(sizeof(double*) * input_items_counter);    // array of the items of dataset
         for(int i=0; i<input_items_counter; i++)
             vectors[i] = malloc(sizeof(double) * (dimension + 1));
-        
+
+        double** query_vectors = malloc(sizeof(double*) * query_items_counter);    // array of the items of dataset
+        for(int i=0; i<query_items_counter; i++)
+            query_vectors[i] = malloc(sizeof(double) * (dimension + 1));
+
+        float* t = malloc(sizeof(float) * dimension);
         for(int n=0; n<L; n++)
         {
-            float* t = malloc(sizeof(float) * dimension);
+            printf("aa\n");
             for(int i=0; i<dimension; i++)
                 t[i] = ((float)rand() / (float)(RAND_MAX)) * delta;
 
             vectors = grid_to_vector(curves, delta, input_items_counter, dimension, t);
+            query_vectors = grid_to_vector(query_curves, delta, query_items_counter, dimension, t);
+
             // for(int i=0; i<input_items_counter; i++)
             // {
             //     printf("\n\n");
-            //     for(int j=0; j<dimension; j++)
-            //             printf("%f ", vectors[i][j]);
+                // for(int j=0; j<dimension; j++)
+                //         printf("%f ", vectors[0][j]);
             // }
-            lsh_for_vectors(vectors, input_items_counter, dimension, k, L, names, query_file, delta, output_file, curves, t, n);
+            lsh_for_vectors(vectors, input_items_counter, names, query_vectors, query_items_counter, query_names, dimension, curves, query_curves, output_file_ptr, k, delta, t, n);
         }
     }
     else if(strcmp(algorithm, "Hypercube") == 0)
@@ -192,13 +248,16 @@ int main(int argc, char* argv[])
             for(int i=0; i<input_items_counter; i++)
                 vectors[i] = malloc(sizeof(double) * (2*dimension + 1));
 
-            double t = ((float)rand() / (float)(RAND_MAX)) * delta;
-            vectors = grid_to_frechet(curves, delta, input_items_counter, dimension, t);
-            // for(int i=0; i<input_items_counter; i++)
-            //     for(int j=0; j<dimension; j++)
-            //             printf("%f ", vectors[i][j]);
-            
-            lsh_for_frechet(vectors, input_items_counter, dimension, k, L, names, query_file, delta, output_file, curves, t);
+            for(int n=0; n<L; n++)
+            {
+                double t = ((float)rand() / (float)(RAND_MAX)) * delta;
+                vectors = grid_to_frechet(curves, delta, input_items_counter, dimension, t);
+                // for(int i=0; i<input_items_counter; i++)
+                //     for(int j=0; j<dimension; j++)
+                //             printf("%f ", vectors[i][j]);
+        
+                lsh_for_frechet(vectors, input_items_counter, dimension, k, L, names, query_file_ptr, output_file_ptr, delta, curves, t, n);
+            }
         }
         else if(strcmp(metric, "continuous") == 0)
         {
