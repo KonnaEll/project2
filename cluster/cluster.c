@@ -33,6 +33,10 @@ int main(int argc, char* argv[])
                 update = argv[i+1];
             else if(strcmp(argv[i], "-assignment") == 0)
                 assignment = argv[i+1];
+            else if(strcmp(argv[i], "-complete") == 0)
+                complete = 1;
+            else if(strcmp(argv[i], "-silhouette") == 0)
+                silhouette = 1;                
         }
     }
     else
@@ -187,7 +191,7 @@ int main(int argc, char* argv[])
     }
     else if(strcmp(assignment, "Hypercube") == 0)
     {
-
+        cube_assign(names, input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr, number_of_vector_hash_functions,number_of_probes,max_number_M_hypercube);
     }
     else if(strcmp(assignment, "LSH_Frechet") == 0)
     {
