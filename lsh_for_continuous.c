@@ -5,104 +5,141 @@
 #include <math.h>
 #include <sys/time.h>
 #include <limits.h>
-#include "lsh_for_frechet.h"
+#include "lsh_for_continuous.h"
 #include "lsh_funcs.h"
+#include "lsh_for_frechet.h"
 
-float distance_computation(float** distance, int dimension, double** curves, double** query_curves, int m, int item)
+double** filtering(double** curves, int input_items_counter, int dimension)
 {
-    distance[0][0] = sqrt(pow(curves[item][0] - query_curves[m][0], 2));
+    double** filtered = malloc(sizeof(double*) * input_items_counter);
+        for(int i=0; i<input_items_counter; i++)
+            filtered[i] = malloc(sizeof(double) * dimension);
 
-    for(int i=1; i<dimension; i++)
-    {
-        distance[i][0] = fmax(distance[i-1][0], sqrt(pow(curves[item][i] - query_curves[m][0], 2)));
-    }
-    for(int i=1; i<dimension; i++)
-    {
-        distance[0][i] = fmax(distance[0][i-1], sqrt(pow(curves[item][0] - query_curves[m][i], 2)));
-    }
-
-    for(int i=1; i<dimension; i++)
-    {
-        for(int j=1; j<dimension; j++)
-        {
-            distance[i][j] = fmax(fmin(fmin(distance[i-1][j], distance[i][j-1]), distance[i-1][j-1]), sqrt(pow(curves[item][i] - query_curves[m][j], 2)));
-        }
-    }
-
-    return distance[dimension-1][dimension-1];
-}
-
-double** grid_to_frechet(double** curves, double delta, int input_items_counter, int dimension, float* t)
-{
-    struct Node* grid_array[input_items_counter][dimension];
+    float e = 0.3;
+    int flag, count, j;
     for(int i=0; i<input_items_counter; i++)
     {
-        for(int j=0; j<dimension; j++)
-        {
-            grid_array[i][j] = malloc(sizeof(struct Node));
-            grid_array[i][j]->x = 3*dimension;  // for padding
-            grid_array[i][j]->y = 3*dimension;  // fill it and change only the different ones
-        }
-    }
-    int flag, count;
-    double G[dimension];
-    int G_index[dimension];
-    for(int i=0; i<input_items_counter; i++)
-    {
-        count = 0;
-        for(int j=0; j<dimension; j++)
+        j = 0, count = 0;
+        while(j < dimension)
         {
             flag = 0;
-            G[j] = floor((curves[i][j] + 1/2) / delta) * delta;     // snapping
-            G[j] = G[j] + t[j];    // shift vector by t
-            G_index[j] = j * delta;
+            if(j == 0)
+                filtered[i][j] = curves[i][j];  // keep always the first value
 
-            // if something is the same then throw it
-            if(count > 0)
+            // type of equation with e
+            if((fabs(curves[i][j] - curves[i][j+1]) <= e) && (fabs(curves[i][j+1] - curves[i][j+2]) <= e))
+                flag = 1;
+            
+            if(flag == 1)   // dont save this value
             {
-                if((int)grid_array[i][count-1]->y == (int)G[j])
-                    flag = 1;
-            }
-
-            if(flag == 0)   // else fill the array with the results
-            {
-                grid_array[i][count]->x = G_index[j];
-                grid_array[i][count]->y = G[j];
                 count++;
+                j = j + 2;  // continue with the next element
+                filtered[i][count] = curves[i][j];
+            }
+            else
+            {
+                count++;
+                j++;
+                filtered[i][count] = curves[i][j];
+            }
+            if(j > (dimension - 3))     // save the last two values manually
+            {
+                if(j == (dimension - 2))
+                {
+                    count++;
+                    filtered[i][count] = curves[i][j];
+                    j++;
+                }
+                count++;
+                filtered[i][count] = curves[i][j];
+                j++;
             }
         }
-
-        // if(i==0)
-        // {
-        //     for(int p=0; p<dimension; p++)
-        //         printf("%d %f\n", grid_array[i][p]->x, grid_array[i][p]->y);
-        // }
     }
+    return filtered;
+}
 
-    int new_dimension = 2 * dimension;
+double** grid_to_vector(double** filtered, double delta, int input_items_counter, int dimension)
+{
     double** vector = malloc(sizeof(double*) * input_items_counter);
     for(int i=0; i<input_items_counter; i++)
-        vector[i] = malloc(sizeof(double) * new_dimension);
+        vector[i] = malloc(sizeof(double) * dimension);
+
 
     for(int i=0; i<input_items_counter; i++)
     {
-        count = 0;
         for(int j=0; j<dimension; j++)
         {
-            vector[i][count] = grid_array[i][j]->x;  // vector is the array that has every clue of the struct aligned
-            count++;
-            vector[i][count] = grid_array[i][j]->y;
-            count++;
+            vector[i][j] = floor(filtered[i][j] / delta) * delta;     // equation for grid
+
         }
     }
 
-    // for(int i=0; i<new_dimension; i++)
-    //     printf("%f\n", vector[0][i]);
-
-    return vector;  // vector has the new vectors that are going to be in lsh
+    return vector;
 }
 
-void lsh_for_frechet(double** vectors, int input_items_counter, char** names, double** query_vectors, int query_items_counter, char** query_names, int dimension, double** curves, double** query_curves, FILE* output_file_ptr, int k, int n)
+
+double** min_max_padding(double** vectors, int input_items_counter, int dimension)
+{
+    double** timeseries = malloc(sizeof(double*) * input_items_counter);
+    for(int i=0; i<input_items_counter; i++)
+    {
+        timeseries[i] = malloc(sizeof(double) * dimension);
+        for(int j=0; j<dimension; j++)
+            timeseries[i][j] = 3*dimension;     // padding with a large number
+    }
+
+    int flag, count, j;
+    for(int i=0; i<input_items_counter; i++)
+    {
+        j = 0, count = 0;
+        while((j < dimension) && (vectors[i][j] != 0))
+        {
+            flag = 0;
+            if(j == 0)
+            {
+                timeseries[i][j] = vectors[i][j];  // keep always the first value
+                j++;
+                continue;
+            }
+
+            // between maximum and minimum
+            if((fmin(vectors[i][j-1], vectors[i][j+1]) <= vectors[i][j]) && (fmax(vectors[i][j-1], vectors[i][j+1]) >= vectors[i][j]))
+                flag = 1;
+            
+            if(flag == 1)   // dont save this value
+            {
+                count++;
+                j = j + 2;  // continue with the next element
+                timeseries[i][count] = vectors[i][j-1];
+            }
+            else
+            {
+                count++;
+                j++;
+                timeseries[i][count] = vectors[i][j-1];
+            }
+            if(j > (dimension - 3))     // save the last two values manually
+            {
+                if(j == (dimension - 2))
+                {
+                    count++;
+                    timeseries[i][count] = vectors[i][j];
+                    j++;
+                }
+                count++;
+                timeseries[i][count] = vectors[i][j];
+                j++;
+            }
+        }
+    }
+
+    return timeseries;
+}
+
+
+
+void lsh_for_continuous(double** vectors, int input_items_counter, char** names, double** query_vectors, int query_items_counter, char** query_names, int dimension, double** curves, double** query_curves, FILE* output_file_ptr, int k)
 {
     float** h_p_result = malloc(sizeof(float*) * input_items_counter); // array with the results of the h function
     for(int i=0; i<input_items_counter; i++)
@@ -112,7 +149,7 @@ void lsh_for_frechet(double** vectors, int input_items_counter, char** names, do
         srand(time(0));
         for(int j=0; j<k; j++)
         {
-            h_p_result[i][j] = h_function(vectors, i, 2*dimension);   // h_function
+            h_p_result[i][j] = h_function(vectors, i, dimension);   // h_function
         }
     }
 
@@ -177,7 +214,7 @@ void lsh_for_frechet(double** vectors, int input_items_counter, char** names, do
         srand(time(0));
         for(int j=0; j<k; j++)
         {
-            h_q_result[i][j] = h_function(query_vectors, i, 2*dimension);   // h_function
+            h_q_result[i][j] = h_function(query_vectors, i, dimension);   // h_function
         }
     }
 
@@ -185,11 +222,9 @@ void lsh_for_frechet(double** vectors, int input_items_counter, char** names, do
     for(int i=0; i<dimension; i++)
         distance[i] = malloc(sizeof(float) * dimension);
 
-
     char* nearest_neighbor = malloc(sizeof(char*) + 1);
     float dist;
     // find the nearest neighbor of each query
-    fprintf(output_file_ptr, "Hash Table no%d\n", n);
     for(int m=0; m<query_items_counter; m++)    // for every query show the results
     {
         hash_index = 0;

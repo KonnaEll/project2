@@ -8,6 +8,7 @@
 #include "lsh_funcs.h"
 #include "lsh_for_vectors.h"
 #include "lsh_for_frechet.h"
+#include "lsh_for_continuous.h"
 
 int main(int argc, char* argv[])
 {
@@ -131,7 +132,7 @@ int main(int argc, char* argv[])
     // Work for input file
     double** curves = malloc(sizeof(double*) * input_items_counter);    // array of the items of dataset
     for(int i=0; i<input_items_counter; i++)
-        curves[i] = malloc(sizeof(double) * (dimension + 1));
+        curves[i] = malloc(sizeof(double) * dimension);
 
     char** names = malloc(sizeof(char*) * input_items_counter);
     for(int i=0; i<input_items_counter; i++)
@@ -170,12 +171,12 @@ int main(int argc, char* argv[])
             query_items_counter = query_items_counter + 1;
     }
     rewind(query_file_ptr);
-    
+
     // Work for query file
     double** query_curves = malloc(sizeof(double*) * query_items_counter);    // array of the items of dataset
     for(int i=0; i<query_items_counter; i++)
         query_curves[i] = malloc(sizeof(double) * (dimension + 1));
-    
+
     char** query_names = malloc(sizeof(char*) * query_items_counter);
     for(int i=0; i<query_items_counter; i++)
         query_names[i] = malloc(sizeof(char) * 20);
@@ -209,31 +210,9 @@ int main(int argc, char* argv[])
     srand(time(0));
     if(strcmp(algorithm, "LSH") == 0)
     {
-        double** vectors = malloc(sizeof(double*) * input_items_counter);    // array of the items of dataset
-        for(int i=0; i<input_items_counter; i++)
-            vectors[i] = malloc(sizeof(double) * (dimension + 1));
-
-        double** query_vectors = malloc(sizeof(double*) * query_items_counter);    // array of the items of dataset
-        for(int i=0; i<query_items_counter; i++)
-            query_vectors[i] = malloc(sizeof(double) * (dimension + 1));
-
-        float* t = malloc(sizeof(float) * dimension);
         for(int n=0; n<L; n++)
         {
-            printf("aa\n");
-            for(int i=0; i<dimension; i++)
-                t[i] = ((float)rand() / (float)(RAND_MAX)) * delta;
-
-            vectors = grid_to_vector(curves, delta, input_items_counter, dimension, t);
-            query_vectors = grid_to_vector(query_curves, delta, query_items_counter, dimension, t);
-
-            // for(int i=0; i<input_items_counter; i++)
-            // {
-            //     printf("\n\n");
-                // for(int j=0; j<dimension; j++)
-                //         printf("%f ", vectors[0][j]);
-            // }
-            lsh_for_vectors(vectors, input_items_counter, names, query_vectors, query_items_counter, query_names, dimension, curves, query_curves, output_file_ptr, k, delta, t, n);
+            lsh_for_vectors(input_items_counter, names, query_items_counter, query_names, dimension, curves, query_curves, output_file_ptr, k, n);
         }
     }
     else if(strcmp(algorithm, "Hypercube") == 0)
@@ -248,20 +227,69 @@ int main(int argc, char* argv[])
             for(int i=0; i<input_items_counter; i++)
                 vectors[i] = malloc(sizeof(double) * (2*dimension + 1));
 
+            double** query_vectors = malloc(sizeof(double*) * query_items_counter);    // array of the items of dataset
+            for(int i=0; i<query_items_counter; i++)
+                query_vectors[i] = malloc(sizeof(double) * (2*dimension + 1));
+
+            float* t = malloc(sizeof(float) * dimension);
             for(int n=0; n<L; n++)
             {
-                double t = ((float)rand() / (float)(RAND_MAX)) * delta;
+                for(int i=0; i<dimension; i++)
+                    t[i] = ((float)rand() / (float)(RAND_MAX)) * delta;
+
                 vectors = grid_to_frechet(curves, delta, input_items_counter, dimension, t);
+                query_vectors = grid_to_frechet(query_curves, delta, query_items_counter, dimension, t);
                 // for(int i=0; i<input_items_counter; i++)
-                //     for(int j=0; j<dimension; j++)
-                //             printf("%f ", vectors[i][j]);
-        
-                lsh_for_frechet(vectors, input_items_counter, dimension, k, L, names, query_file_ptr, output_file_ptr, delta, curves, t, n);
+                    // for(int j=0; j<2*dimension; j++)
+                    //         printf("%f ", query_vectors[0][j]);
+
+                lsh_for_frechet(vectors, input_items_counter, names, query_vectors, query_items_counter, query_names, dimension, curves, query_curves, output_file_ptr, k, n);
             }
         }
         else if(strcmp(metric, "continuous") == 0)
         {
+            double** vectors = malloc(sizeof(double*) * input_items_counter);    // array of the items of dataset
+            for(int i=0; i<input_items_counter; i++)
+                vectors[i] = malloc(sizeof(double) * (dimension + 1));
 
+            double** query_vectors = malloc(sizeof(double*) * query_items_counter);    // array of the items of dataset
+            for(int i=0; i<query_items_counter; i++)
+                query_vectors[i] = malloc(sizeof(double) * (dimension + 1));
+
+            double** filtered = malloc(sizeof(double*) * input_items_counter);
+            for(int i=0; i<input_items_counter; i++)
+                filtered[i] = malloc(sizeof(double) * dimension);
+            
+            double** query_filtered = malloc(sizeof(double*) * query_items_counter);
+            for(int i=0; i<query_items_counter; i++)
+                query_filtered[i] = malloc(sizeof(double) * dimension);
+
+            double** timeseries = malloc(sizeof(double*) * input_items_counter);    // array of the items of dataset
+            for(int i=0; i<input_items_counter; i++)
+                timeseries[i] = malloc(sizeof(double) * (dimension + 1));    
+
+            double** query_timeseries = malloc(sizeof(double*) * query_items_counter);    // array of the items of dataset
+            for(int i=0; i<query_items_counter; i++)
+                query_timeseries[i] = malloc(sizeof(double) * (dimension + 1)); 
+
+
+            filtered = filtering(curves, input_items_counter, dimension);
+            query_filtered = filtering(query_curves, query_items_counter, dimension);
+
+            vectors = grid_to_vector(filtered, delta, input_items_counter, dimension);
+            query_vectors = grid_to_vector(query_filtered, delta, query_items_counter, dimension);
+            
+            timeseries = min_max_padding(vectors, input_items_counter, dimension);
+            query_timeseries = min_max_padding(query_vectors, query_items_counter, dimension);
+
+            // for(int j=0; j<dimension; j++)
+            //     printf("%f ", vectors[50][j]);
+            // printf("\n\n\n");
+            // for(int j=0; j<dimension; j++)
+            //         printf("%f ", timeseries[50][j]);
+            // printf("\n");
+
+            lsh_for_continuous(timeseries, input_items_counter, names, query_timeseries, query_items_counter, query_names, dimension, curves, query_curves, output_file_ptr, k);
         }
     }
 
