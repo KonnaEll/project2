@@ -10,4 +10,5 @@ struct Hash_Node
 
 float h_function(double**, int, int);
 
+
 #endif

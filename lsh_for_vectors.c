@@ -182,5 +182,4 @@ void lsh_for_vectors(int input_items_counter, char** names, int query_items_coun
         fprintf(output_file_ptr, "\n");
     }
     fprintf(output_file_ptr, "AAAAAAAAAA\n");
-    // }
 }
