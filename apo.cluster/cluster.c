@@ -19,8 +19,6 @@ int main(int argc, char* argv[])
     char* assignment = malloc(sizeof(char*) + 1);
     int complete = 0;
     int silhouette = 0;
-    int probes = 2;
-    int M=10;
 	if(argc == 13 || argc == 12 || argc == 11)   // without complete
 	{
         for(int i=1; i<=argc-1; i=i+2)
@@ -193,7 +191,7 @@ int main(int argc, char* argv[])
     }
     else if(strcmp(assignment, "Hypercube") == 0)
     {
-        cube_assign(names, input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr, number_of_vector_hash_functions,probes,M);
+        cube_assign(names, input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr, number_of_vector_hash_functions,number_of_probes,max_number_M_hypercube);
     }
     else if(strcmp(assignment, "LSH_Frechet") == 0)
     {
