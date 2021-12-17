@@ -9,6 +9,7 @@
 #include "lsh_funcs.h"
 #include "cube_funcs.h"
 #include "tree.h"
+#include "lsh_for_frechet.h"
 
 int min_distance(double** p, int j, double** centroid_index, int number_of_clusters, int dimension)     // minimun distance of vector from a centroid
 {
@@ -1273,6 +1274,7 @@ void frechet_classic_assign(int input_items_counter, int dimension, int number_o
     int count;
     while(1)
     {
+        printf("ee\n");
         for(int j=0; j<input_items_counter; j++)
             cluster_per_item[j] = min_distance_index(curves, j, centroid_index, number_of_clusters, dimension);
 
@@ -1282,14 +1284,11 @@ void frechet_classic_assign(int input_items_counter, int dimension, int number_o
         {
             centroid_index[i][0] = i;
 
-            struct Node* root = NULL;
+            struct Tree_Node* root = NULL;
             struct Queue* queue = New_Queue(input_items_counter);
             for(int i=0; i<input_items_counter; i++)
             {
                 Insert_node(&root, curves[rand() % input_items_counter], queue);
-
-                if(i >= input_items_counter)
-                    Insert_node(&root, 0, queue);
             }
 
             centre = post_order_traversal(root, dimension);
@@ -1490,9 +1489,9 @@ void frechet_classic_assign(int input_items_counter, int dimension, int number_o
 }
 
 
-void lsh_assign(char** names, int input_items_counter, int dimension, int number_of_clusters, double** curves, double** centroid_index, int complete, int silhouette, FILE* output_file_ptr, int number_of_vector_hash_functions)
+void frechet_lsh_assign(char** names, int input_items_counter, int dimension, int number_of_clusters, double** curves, double** centroid_index, int complete, int silhouette, FILE* output_file_ptr, int number_of_vector_hash_functions)
 {
-    fprintf(output_file_ptr, "Algorithm: LSH\n");
+    fprintf(output_file_ptr, "Algorithm: LSH with Frechet\n");
     float** h_p_result = malloc(sizeof(float*) * input_items_counter); // array with the results of the h function
     for(int i=0; i<input_items_counter; i++)
         h_p_result[i] = malloc(sizeof(float) * number_of_vector_hash_functions);
@@ -1595,8 +1594,14 @@ void lsh_assign(char** names, int input_items_counter, int dimension, int number
         j_temp[i] = -1;
     }
 
+    double* centre = malloc(sizeof(double*) * dimension);
+    int counter = 0;
+    float** distance = malloc(sizeof(float*) * dimension);
+    for(int i=0; i<dimension; i++)
+        distance[i] = malloc(sizeof(float) * dimension);
     while(1)
     {
+        counter++;
         for(int i=0; i<number_of_clusters; i++)
         {
             srand(time(0));
@@ -1662,13 +1667,19 @@ void lsh_assign(char** names, int input_items_counter, int dimension, int number
                 {
                     if(k_ID[m] == hash_tables[q_hash_index[m]]->ID)  // compare the IDs
                     {
+                        // // calculate distance
+                        // int dist = 0;
+                        // for(int d=1; d<=dimension; d++)
+                        // {
+                        //     dist = dist + pow((centroid_index[m][d] - curves[hash_tables[q_hash_index[m]]->item][d-1]), 2);
+                        // }
+                        // dist = sqrt(dist);
+
                         // calculate distance
-                        int dist = 0;
-                        for(int d=1; d<=dimension; d++)
-                        {
-                            dist = dist + pow((centroid_index[m][d] - curves[hash_tables[q_hash_index[m]]->item][d-1]), 2);
-                        }
-                        dist = sqrt(dist);
+                        for(int i=0; i<dimension; i++)
+                            for(int j=0; j<dimension; j++)
+                                distance[i][j] = -1;
+                        dist = distance_computation(distance, dimension, curves, centroid_index, m, hash_tables[q_hash_index[m]]->item);
 
                         // vectors in range r
                         if(dist < R)
@@ -1696,11 +1707,16 @@ void lsh_assign(char** names, int input_items_counter, int dimension, int number
                                             if(hash_tables[q_hash_index[m]]->item == radius[i][k])
                                             {
                                                 int sec_dist = 0;
-                                                for(int d=1; d<=dimension; d++) // calculate distance of the other
-                                                {
-                                                    sec_dist = sec_dist + pow((centroid_index[i][d] - curves[hash_tables[q_hash_index[m]]->item][d-1]), 2);
-                                                }
-                                                sec_dist = sqrt(sec_dist);
+                                                // for(int d=1; d<=dimension; d++) // calculate distance of the other
+                                                // {
+                                                //     sec_dist = sec_dist + pow((centroid_index[i][d] - curves[hash_tables[q_hash_index[m]]->item][d-1]), 2);
+                                                // }
+                                                // sec_dist = sqrt(sec_dist);
+                                                for(int i=0; i<dimension; i++)
+                                                    for(int j=0; j<dimension; j++)
+                                                        distance[i][j] = -1;
+                                                sec_dist = distance_computation(distance, dimension, curves, centroid_index, i, hash_tables[q_hash_index[m]]->item);
+
                                                 if(dist < sec_dist) // closer cluster
                                                 {
                                                     radius[i][k] = -1;
@@ -1737,41 +1753,49 @@ void lsh_assign(char** names, int input_items_counter, int dimension, int number
                 break;
             R = R * 2;  // or double the radius and continue
         }
-
         // Fix the new centroids
-        int sum;
+        srand((unsigned int)time(NULL));
         for(int i=0; i<number_of_clusters; i++)
         {
             centroid_index[i][0] = i;
-            for(int z=1; z<dimension; z++)
+
+            struct Tree_Node* root = NULL;
+            struct Queue* queue = New_Queue(input_items_counter);
+            for(int i=0; i<input_items_counter; i++)
             {
-                sum = 0;
-                for(int k=0; k<j[i]; k++)
-                {
-                    sum = sum + curves[radius[i][k]][z-1]; // average
-                }
-                if(j[i] > 0)
-                    centroid_index[i][z] = sum / j[i];
+                Insert_node(&root, curves[rand() % input_items_counter], queue);
+            }
+
+            centre = post_order_traversal(root, dimension);
+            for(int d=1; d<dimension; d++)
+            {
+                centroid_index[i][d] = centre[d];
             }
         }
 
-        int counter = 0;
-        for(int i=0; i<number_of_clusters; i++)     // centroids are the same for two rounds
-        {
-            for(int z=1; z<dimension; z++)
-            {
-                if(previous_centroid_index[i][z] != centroid_index[i][z])
-                {
-                    counter++;
-                }
-                previous_centroid_index[i][z] = centroid_index[i][z];
-            }
-        }
-
-        if(counter == 0)    // then stop
+        // counter = 0;
+        // for(int i=0; i<number_of_clusters; i++)     // if two centroids are the same for 2 rounds
+        // {
+        //     for(int z=1; z<dimension; z++)
+        //     {
+        //         if(previous_centroid_index[i][z] != centroid_index[i][z])
+        //         {
+        //             counter++;
+        //         }
+        //         previous_centroid_index[i][z] = centroid_index[i][z];
+        //     }
+        // }
+        if(counter > 10)  // then break
         {
             break;
         }
+        // for(int i=0; i<number_of_clusters; i++)
+        // {
+        //     printf("\n\n");
+        //     for(int j=0; j<dimension; j++)
+        //         printf("%f ", centroid_index[i][j]);
+        // }
+        // exit(1);
     }
 
     int count = 0;
@@ -1833,6 +1857,7 @@ void lsh_assign(char** names, int input_items_counter, int dimension, int number
         }
         fprintf(output_file_ptr, "clustering time: %f\n\n", clustering_time);
     }
+
     if(silhouette == 1)
     {
         // Silhouette
@@ -1880,7 +1905,6 @@ void lsh_assign(char** names, int input_items_counter, int dimension, int number
                 a_i = 1;
             else
                 a_i = sum / j[clust];   // average
-            
             sum = 0;
             clust = min_ind[clust];     // closest centroid
             for(int k=0; k<j[clust]-1; k++)
@@ -1906,7 +1930,6 @@ void lsh_assign(char** names, int input_items_counter, int dimension, int number
             else
                 s[i] = 0;
         }
-
         float average_per_cluster[number_of_clusters];  // average for each cluster
         for(int i=0; i<number_of_clusters; i++)
             average_per_cluster[i] = 0;

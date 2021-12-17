@@ -197,7 +197,7 @@ int main(int argc, char* argv[])
     }
     else if(strcmp(assignment, "LSH_Frechet") == 0 && strcmp(update, "Mean_Frechet") == 0)
     {
-
+        frechet_lsh_assign(names, input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr, number_of_vector_hash_functions);
     }
 
     return 0;
