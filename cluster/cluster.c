@@ -32,19 +32,21 @@ int main(int argc, char* argv[])
             else if(strcmp(argv[i], "-update") == 0)
                 update = argv[i+1];
             else if(strcmp(argv[i], "-assignment") == 0)
-                assignment = argv[i+1];
-            else if(strcmp(argv[i], "-complete") == 0)
+                assignment = argv[i+1];            
+        }
+
+        for(int i=1; i<=argc-1; i++)
+        {
+            if(strcmp(argv[i], "-complete") == 0)
                 complete = 1;
             else if(strcmp(argv[i], "-silhouette") == 0)
-                silhouette = 1;                
+                silhouette = 1;               
         }
     }
     else
     {
         printf("Wrong input. Try again!\n");
     }
-
-    printf("%s %s %s %s %s\n", input_file, configuration_file, output_file, update, assignment);
 
 
     FILE *input_file_ptr;
@@ -139,7 +141,6 @@ int main(int argc, char* argv[])
             number_of_probes = atoi(numb);
         i++;
     }
-    printf("%d %d %d %d %d %d %d %d\n", complete, silhouette, number_of_clusters, number_of_vector_hash_tables, number_of_vector_hash_functions, number_of_probes, number_of_hypercube_dimensions, max_number_M_hypercube);
 
     // Initialize the centroids with K-means++ method
     srand(time(0));
@@ -174,41 +175,30 @@ int main(int argc, char* argv[])
             centroid_index[i][d] = curves[index][d-1];
         }
 	}
-    // for(int i=0; i<number_of_clusters; i++)
-    // {
-    //     printf("\n\n");
-    //     for(int d=0; d<=dimension; d++)
-    //         printf("%f ", centroid_index[i][d]);
-    // }
 
-    if(strcmp(assignment, "Classic") == 0)
+
+    if(strcmp(assignment, "Classic") == 0 && strcmp(update, "Mean_Vector") == 0)
     {
-        classic_assign(input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr);
+        for(int i=0; i<number_of_vector_hash_tables; i++)
+            classic_assign(input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr);
     }
-    else if(strcmp(assignment, "LSH") == 0)
+    else if(strcmp(assignment, "LSH") == 0 && strcmp(update, "Mean_Vector") == 0)
     {
-        lsh_assign(names, input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr, number_of_vector_hash_functions);
+        for(int i=0; i<number_of_vector_hash_tables; i++)
+            lsh_assign(names, input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr, number_of_vector_hash_functions);
     }
-    else if(strcmp(assignment, "Hypercube") == 0)
+    else if(strcmp(assignment, "Hypercube") == 0 && strcmp(update, "Mean_Vector") == 0)
     {
-        cube_assign(names, input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr, number_of_vector_hash_functions,number_of_probes,max_number_M_hypercube);
+        cube_assign(names, input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr, number_of_hypercube_dimensions, number_of_probes, max_number_M_hypercube);
     }
-    else if(strcmp(assignment, "LSH_Frechet") == 0)
+    else if(strcmp(assignment, "Classic") == 0 && strcmp(update, "Mean_Frechet") == 0)
+    {
+        frechet_classic_assign(input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr);
+    }
+    else if(strcmp(assignment, "LSH_Frechet") == 0 && strcmp(update, "Mean_Frechet") == 0)
     {
 
     }
-
-
-
-
-
-
-
-
-
-
-
-
 
     return 0;
 }
