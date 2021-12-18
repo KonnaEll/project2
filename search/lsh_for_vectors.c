@@ -25,7 +25,7 @@ void lsh_for_vectors(int input_items_counter, char** names, int query_items_coun
 
     // Hash table for input file
     int hash_index;
-    int TableSize = input_items_counter / 8;
+    int TableSize = input_items_counter / 6;
     int M_hash = (int)pow(2, 32) - 5;
     struct Hash_Node* hash_tables[TableSize];
     for(int i=0; i<TableSize; i++)

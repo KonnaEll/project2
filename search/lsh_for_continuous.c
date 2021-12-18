@@ -15,7 +15,7 @@ double** filtering(double** curves, int input_items_counter, int dimension)
         for(int i=0; i<input_items_counter; i++)
             filtered[i] = malloc(sizeof(double) * dimension);
 
-    float e = 0.3;
+    float e = 1;
     int flag, count, j;
     for(int i=0; i<input_items_counter; i++)
     {
@@ -155,7 +155,7 @@ void lsh_for_continuous(double** vectors, int input_items_counter, char** names,
 
     // Hash table for input file
     int hash_index;
-    int TableSize = input_items_counter / 8;
+    int TableSize = input_items_counter / 6;
     int M_hash = (int)pow(2, 32) - 5;
     struct Hash_Node* hash_tables[TableSize];
     for(int i=0; i<TableSize; i++)

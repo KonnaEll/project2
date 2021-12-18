@@ -34,7 +34,7 @@ float h_function(double** p, int index, int dimension)     // calculation of h f
 
     float dot_result = vectors_dot_product(p, v, index, dimension);   // calculate the dot product of the to vectors
     int w = 600;  // stable
-    float t = (float)(rand() % 4);    // calculate t uniformly
+    float t = (float)(rand() % w);    // calculate t uniformly
 
     float h_result = floor((dot_result + t) / w);  // result of h function
 
