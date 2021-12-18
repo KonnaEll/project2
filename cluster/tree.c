@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include "tree.h"
 
-struct Node* New_node(double* curve)
+struct Tree_Node* New_node(double* curve)
 {
-    struct Node* node = (struct Node*)malloc(sizeof(struct Node));
+    struct Tree_Node* node = (struct Tree_Node*)malloc(sizeof(struct Tree_Node));
     node->curve = curve;
     node->left_child = NULL;
     node->right_child = NULL;
@@ -19,7 +19,7 @@ struct Queue* New_Queue(int size) // create new queue
     queue->rear = -1;
     queue->size = size;
 
-    queue->array = (struct Node**)malloc(sizeof(struct Node*) * queue->size);
+    queue->array = (struct Tree_Node**)malloc(sizeof(struct Tree_Node*) * queue->size);
 
     for(int i=0; i<size; i++)
         queue->array[i] = NULL;
@@ -37,7 +37,7 @@ int Full(struct Queue* queue)
     return queue->rear == queue->size - 1;
 }
  
-void Enqueue(struct Node* node, struct Queue* queue)
+void Enqueue(struct Tree_Node* node, struct Queue* queue)
 {
     if(Full(queue) == 1)
         return;
@@ -49,12 +49,12 @@ void Enqueue(struct Node* node, struct Queue* queue)
         queue->front++;
 }
 
-struct Node* Dequeue(struct Queue* queue)
+struct Tree_Node* Dequeue(struct Queue* queue)
 {
     if(Empty(queue) == 1)
         return NULL;
 
-    struct Node* temp = queue->array[queue->front];
+    struct Tree_Node* temp = queue->array[queue->front];
 
     if (queue->front == queue->rear)
     {
@@ -67,21 +67,21 @@ struct Node* Dequeue(struct Queue* queue)
     return temp;
 }
 
-int Two_children(struct Node* temp)
+int Two_children(struct Tree_Node* temp)
 {
     return temp && temp->left_child && temp->right_child;
 }
 
-void Insert_node(struct Node** root, double* curve, struct Queue* queue)
+void Insert_node(struct Tree_Node** root, double* curve, struct Queue* queue)
 {
-    struct Node *node = New_node(curve);
+    struct Tree_Node* node = New_node(curve);
 
     if (*root == NULL)
         *root = node;
 
     else
     {
-        struct Node* front = queue->array[queue->front];
+        struct Tree_Node* front = queue->array[queue->front];
 
         if(front->left_child == NULL)
             front->left_child = node;
@@ -95,14 +95,14 @@ void Insert_node(struct Node** root, double* curve, struct Queue* queue)
     Enqueue(node, queue);
 }
 
-void levelOrder(struct Node* root)
+void levelOrder(struct Tree_Node* root)
 {
     struct Queue* queue = New_Queue(100);
 
     Enqueue(root, queue);
     while (!Empty(queue))
     {
-        struct Node* temp = Dequeue(queue);
+        struct Tree_Node* temp = Dequeue(queue);
 
         for(int i=0; i<729; i++)
             printf("%f\n", temp->curve[i]);
@@ -125,7 +125,7 @@ double* Mean_curve(double* left_curve, double* right_curve, int dimension)
 }
 
 
-double* post_order_traversal(struct Node* node, int dimension)
+double* post_order_traversal(struct Tree_Node* node, int dimension)
 {
     double* left_curve = malloc(sizeof(double) * dimension);
     double* right_curve = malloc(sizeof(double) * dimension);
