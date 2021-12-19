@@ -8,6 +8,7 @@
 #include "lsh_funcs.h"
 #include "cube_funcs.h"
 #include "cluster_funcs.h"
+#include "lsh_for_frechet.h"
 
 int main(int argc, char* argv[])
 {
@@ -179,8 +180,7 @@ int main(int argc, char* argv[])
 
     if(strcmp(assignment, "Classic") == 0 && strcmp(update, "Mean_Vector") == 0)
     {
-        for(int i=0; i<number_of_vector_hash_tables; i++)
-            classic_assign(input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr);
+        classic_assign(names, input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr);
     }
     else if(strcmp(assignment, "LSH") == 0 && strcmp(update, "Mean_Vector") == 0)
     {
@@ -193,11 +193,30 @@ int main(int argc, char* argv[])
     }
     else if(strcmp(assignment, "Classic") == 0 && strcmp(update, "Mean_Frechet") == 0)
     {
-        frechet_classic_assign(input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr);
+        frechet_classic_assign(names, input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr);
     }
     else if(strcmp(assignment, "LSH_Frechet") == 0 && strcmp(update, "Mean_Frechet") == 0)
     {
-        frechet_lsh_assign(names, input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr, number_of_vector_hash_functions);
+        double** vectors = malloc(sizeof(double*) * input_items_counter);    // array of the items of dataset
+        for(int i=0; i<input_items_counter; i++)
+            vectors[i] = malloc(sizeof(double) * (2*dimension + 1));
+
+        double** centroid_vectors = malloc(sizeof(double*) * number_of_clusters);    // array of the items of dataset
+        for(int i=0; i<number_of_clusters; i++)
+            centroid_vectors[i] = malloc(sizeof(double) * (2*dimension + 1));
+
+        srand(time(0));
+        float* t = malloc(sizeof(float) * dimension);
+        for(int i=0; i<1; i++)
+        {
+            for(int i=0; i<dimension; i++)
+                t[i] = ((float)rand() / (float)(RAND_MAX)) * 10;
+
+            vectors = grid_to_frechet(curves, 2, input_items_counter, dimension, t);
+            centroid_vectors = grid_to_frechet(centroid_index, 2, number_of_clusters, dimension, t);
+
+            frechet_lsh_assign(vectors, centroid_vectors, names, input_items_counter, dimension, number_of_clusters, curves, centroid_index, complete, silhouette, output_file_ptr, number_of_vector_hash_functions);
+        }
     }
 
     return 0;

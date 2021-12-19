@@ -20,4 +20,4 @@ lsh_for_frechet.o: lsh_for_frechet.c
 	gcc -Wall -Werror -std=c9x -c lsh_for_frechet.c
 
 clean:
-	rm -f cube*.o lsh*.o cluster*.o cluster
+	rm -f cube*.o lsh*.o cluster*.o tree*.o cluster

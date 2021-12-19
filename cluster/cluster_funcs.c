@@ -59,18 +59,16 @@ int min_distance_index(double** p, int j, double** centroid_index, int number_of
             dist = dist + pow((centroid_index[i][d] - p[j][d-1]), 2);
         }
         dist = sqrt(dist);
-        // printf("%d\n", dist);
         if(dist < min)
         {
             min = dist;
             min_index = i;
-            // printf("%d ", i);
         }
     }
     return min_index;
 }
 
-void classic_assign(int input_items_counter, int dimension, int number_of_clusters, double** curves, double** centroid_index, int complete, int silhouette, FILE* output_file_ptr)
+void classic_assign(char** names, int input_items_counter, int dimension, int number_of_clusters, double** curves, double** centroid_index, int complete, int silhouette, FILE* output_file_ptr)
 {
     // Lloyd's algorithm
     int* cluster_per_item = malloc(sizeof(int) * input_items_counter);
@@ -97,7 +95,7 @@ void classic_assign(int input_items_counter, int dimension, int number_of_cluste
             cluster_per_item[j] = min_distance_index(curves, j, centroid_index, number_of_clusters, dimension);
 
         // Fix the new centroids
-        int sum;
+        double sum;
         for(int i=0; i<number_of_clusters; i++)
         {
             centroid_index[i][0] = i;
@@ -160,7 +158,6 @@ void classic_assign(int input_items_counter, int dimension, int number_of_cluste
             }
         }
     }
-
     // Clustering time
     gettimeofday(&stop, 0);
     long sec = stop.tv_sec - start.tv_sec;
@@ -190,7 +187,7 @@ void classic_assign(int input_items_counter, int dimension, int number_of_cluste
             for(int i=0; i<dimension; i++)
                 fprintf(output_file_ptr, "%f ", centroid_index[m][i]);
             for(int i=0; i<j[m]; i++)
-                fprintf(output_file_ptr, ", %d", radius[m][i]);
+                fprintf(output_file_ptr, ", %s", names[radius[m][i]]);
             fprintf(output_file_ptr, "}\n\n");
         }
     }
@@ -310,9 +307,9 @@ void lsh_assign(char** names, int input_items_counter, int dimension, int number
     float** h_p_result = malloc(sizeof(float*) * input_items_counter); // array with the results of the h function
     for(int i=0; i<input_items_counter; i++)
         h_p_result[i] = malloc(sizeof(float) * number_of_vector_hash_functions);
+    srand(time(0));
     for(int i=0; i<input_items_counter; i++)
     {
-        srand(time(0));
         for(int j=0; j<number_of_vector_hash_functions; j++)
         {
             h_p_result[i][j] = h_function(curves, i, dimension);   // h_function
@@ -411,9 +408,9 @@ void lsh_assign(char** names, int input_items_counter, int dimension, int number
 
     while(1)
     {
+        srand(time(0));
         for(int i=0; i<number_of_clusters; i++)
         {
-            srand(time(0));
             for(int j=0; j<number_of_vector_hash_functions; j++)
             {
                 h_q_result[i][j] = h_function(centroid_index, i, dimension);   // h_function
@@ -452,7 +449,7 @@ void lsh_assign(char** names, int input_items_counter, int dimension, int number
             q_hash_index[m] = 0;
             for(int j=0; j<number_of_vector_hash_functions; j++)
             {
-                q_hash_index[m] = q_hash_index[m] + (int)h_q_result[m][j] * r[j]; // g function
+                q_hash_index[m] = q_hash_index[m] + h_q_result[m][j] * r[j]; // g function
             }
             q_hash_index[m] = q_hash_index[m] % M;    // mod M
             if(q_hash_index[m] < 0)
@@ -553,7 +550,7 @@ void lsh_assign(char** names, int input_items_counter, int dimension, int number
         }
 
         // Fix the new centroids
-        int sum;
+        double sum;
         for(int i=0; i<number_of_clusters; i++)
         {
             centroid_index[i][0] = i;
@@ -630,7 +627,7 @@ void lsh_assign(char** names, int input_items_counter, int dimension, int number
             for(int i=0; i<dimension; i++)
                 fprintf(output_file_ptr, "%f ", centroid_index[m][i]);
             for(int i=0; i<j[m]; i++)
-                fprintf(output_file_ptr, ", %d", radius[m][i]);
+                fprintf(output_file_ptr, ", %s", names[radius[m][i]]);
             fprintf(output_file_ptr, "}\n\n");
         }
     }
@@ -767,7 +764,7 @@ void lsh_assign(char** names, int input_items_counter, int dimension, int number
 }
 
 
-void cube_assign(char** names,int input_items_counter, int dimension, int number_of_clusters, double** curves, double** centroid_index, int complete, int silhouette, FILE* output_file_ptr,int k, int probes, int M)
+void cube_assign(char** names, int input_items_counter, int dimension, int number_of_clusters, double** curves, double** centroid_index, int complete, int silhouette, FILE* output_file_ptr,int k, int probes, int M)
 {
     // create 2 tables with 2 dimension and we put inside 0,1//
     int** f = (int**)malloc(input_items_counter * sizeof(int*));
@@ -795,9 +792,9 @@ void cube_assign(char** names,int input_items_counter, int dimension, int number
     float** h_p_result = malloc(sizeof(float*) * input_items_counter * sizeof(int*)); // array with the results of the h function
     for(int i=0; i<input_items_counter; i++)
         h_p_result[i] = malloc(sizeof(float) * k);
+    srand(time(0));
     for(int i=0; i<input_items_counter; i++)
     {
-        srand(time(0));
         for(int j=0; j<k; j++)
         {
             h_p_result[i][j] = h_function(curves, i, dimension);   // h_function
@@ -883,6 +880,7 @@ void cube_assign(char** names,int input_items_counter, int dimension, int number
     for(int i=0; i<number_of_clusters; i++)
         h_q_result[i] = malloc(sizeof(float) * k);
 
+    int counter =0;
     while(1)
     {
         for(int i=0; i<number_of_clusters; i++)
@@ -934,12 +932,11 @@ void cube_assign(char** names,int input_items_counter, int dimension, int number
             q_hash_index[m]=a1[m];
             k_ID[m]=q_hash_index[m];
             q_hash_index[m]=con(a1[m],k);
-        }                
+        }
         int count[number_of_clusters];
         for(int m=0; m<number_of_clusters; m++)
             count[m] = 0;
         int cntr = 0;
-        int cp;
         // exactly the same as lsh before but with the cube algorithm
         while(1)
         {
@@ -950,11 +947,10 @@ void cube_assign(char** names,int input_items_counter, int dimension, int number
                 // {
                     while(hash_tables[q_hash_index[m]] != NULL)
                     {
-                        cp=0;
                         // int hdi=hammingDistance(hash_index,t);
                         // || hdi<=probes
 
-                        if((k_ID[m] == hash_tables[q_hash_index[m]]->ID ) && cp<=M)  // compare the IDs
+                        if(k_ID[m] == hash_tables[q_hash_index[m]]->ID )  // compare the IDs
                         {
                             // calculate distance
                             dist = 0;
@@ -968,7 +964,7 @@ void cube_assign(char** names,int input_items_counter, int dimension, int number
                             {
                                 int j_dist = j[m];
                                 int flag = 0;
-                                for(int i=0; i<=j_dist; i++)
+                                for(int i=0; i<j_dist; i++)
                                 {
                                     if(hash_tables[q_hash_index[m]]->item == radius[m][i])
                                     {
@@ -1032,12 +1028,13 @@ void cube_assign(char** names,int input_items_counter, int dimension, int number
             R = R * 2;
         }
 
+        counter++;
         // Fix the new centroids
-        int sum;
+        double sum;
         for(int i=0; i<number_of_clusters; i++)
         {
             centroid_index[i][0] = i;
-            for(int z=1; z<dimension; z++)
+            for(int z=1; z<=dimension; z++)
             {
                 sum = 0;
                 for(int k=0; k<j[i]; k++)
@@ -1048,26 +1045,10 @@ void cube_assign(char** names,int input_items_counter, int dimension, int number
                     centroid_index[i][z] = sum / j[i];
             }
         }
-
-        int counter = 0;
-        for(int i=0; i<number_of_clusters; i++)
-        {
-            for(int z=1; z<dimension; z++)
-            {
-                if(previous_centroid_index[i][z] != centroid_index[i][z])
-                {
-                    counter++;
-                }
-                previous_centroid_index[i][z] = centroid_index[i][z];
-            }
-        }
-
-        if(counter == 0)
-        {
+        if(counter > 10)
             break;
-        }
     }
-        
+
     int count = 0;
     int min = -1;
     int centroids[input_items_counter];
@@ -1077,7 +1058,7 @@ void cube_assign(char** names,int input_items_counter, int dimension, int number
         {
             for(int i=0; i<j[m]; i++)
             {
-                if(curves[k][0] == radius[m][i])
+                if(k == radius[m][i])
                 {
                     centroids[k] = m;
                     count++;
@@ -1093,6 +1074,7 @@ void cube_assign(char** names,int input_items_counter, int dimension, int number
         }
         count = 0;
     }
+
     // Clustering time
     gettimeofday(&stop, 0);
     long sec = stop.tv_sec - start.tv_sec;
@@ -1107,7 +1089,7 @@ void cube_assign(char** names,int input_items_counter, int dimension, int number
             for(int i=0; i<dimension; i++)
                 fprintf(output_file_ptr, "%f ", centroid_index[m][i]);
             for(int i=0; i<j[m]; i++)
-                fprintf(output_file_ptr, ", %d", radius[m][i]);
+                fprintf(output_file_ptr, ", %s", names[radius[m][i]]);
             fprintf(output_file_ptr, ")\n\n");
         }
     }
@@ -1246,7 +1228,7 @@ void cube_assign(char** names,int input_items_counter, int dimension, int number
     // free(h_q_result);
 }
 
-void frechet_classic_assign(int input_items_counter, int dimension, int number_of_clusters, double** curves, double** centroid_index, int complete, int silhouette, FILE* output_file_ptr)
+void frechet_classic_assign(char** names, int input_items_counter, int dimension, int number_of_clusters, double** curves, double** centroid_index, int complete, int silhouette, FILE* output_file_ptr)
 {
     // Lloyd's algorithm
     int* cluster_per_item = malloc(sizeof(int) * input_items_counter);
@@ -1266,16 +1248,11 @@ void frechet_classic_assign(int input_items_counter, int dimension, int number_o
 
     double* centre = malloc(sizeof(double*) * dimension);
 
-
-    // int h = ceil(log2(input_items_counter));
-    // int height = pow(2, h);
-
     struct timeval start, stop;
     gettimeofday(&start, 0);
     int count;
     while(1)
     {
-        printf("ee\n");
         for(int j=0; j<input_items_counter; j++)
             cluster_per_item[j] = min_distance_index(curves, j, centroid_index, number_of_clusters, dimension);
 
@@ -1316,12 +1293,6 @@ void frechet_classic_assign(int input_items_counter, int dimension, int number_o
             break;
         }
     }
-    // for(int i=0; i<number_of_clusters; i++)
-    // {
-    //     printf("\n\n");
-    //     for(int j=0; j<dimension; j++)
-    //         printf("%f ", centroid_index[i][j]);
-    // }
 
     int j[number_of_clusters];
     for(int i=0; i<number_of_clusters; i++)
@@ -1375,7 +1346,7 @@ void frechet_classic_assign(int input_items_counter, int dimension, int number_o
             for(int i=0; i<dimension; i++)
                 fprintf(output_file_ptr, "%f ", centroid_index[m][i]);
             for(int i=0; i<j[m]; i++)
-                fprintf(output_file_ptr, ", %d", radius[m][i]);
+                fprintf(output_file_ptr, ", %s", names[radius[m][i]]);
             fprintf(output_file_ptr, "}\n\n");
         }
     }
@@ -1479,35 +1450,36 @@ void frechet_classic_assign(int input_items_counter, int dimension, int number_o
 
 
     // free memory
-    free(cluster_per_item);
-    for(int i=0; i<number_of_clusters; i++)
-    {
-        free(previous_centroid_index[i]);
-        free(radius[i]);
-    }
-    free(previous_centroid_index);
-    free(radius);
+    // free(cluster_per_item);
+    // for(int i=0; i<number_of_clusters; i++)
+    // {
+    //     free(previous_centroid_index[i]);
+    //     free(radius[i]);
+    // }
+    // free(previous_centroid_index);
+    // free(radius);
 }
 
 
-void frechet_lsh_assign(char** names, int input_items_counter, int dimension, int number_of_clusters, double** curves, double** centroid_index, int complete, int silhouette, FILE* output_file_ptr, int number_of_vector_hash_functions)
+void frechet_lsh_assign(double** vectors, double** centroid_vectors, char** names, int input_items_counter, int dimension, int number_of_clusters, double** curves, double** centroid_index, int complete, int silhouette, FILE* output_file_ptr, int number_of_vector_hash_functions)
 {
     fprintf(output_file_ptr, "Algorithm: LSH with Frechet\n");
     float** h_p_result = malloc(sizeof(float*) * input_items_counter); // array with the results of the h function
     for(int i=0; i<input_items_counter; i++)
         h_p_result[i] = malloc(sizeof(float) * number_of_vector_hash_functions);
+    
+    srand(time(0));
     for(int i=0; i<input_items_counter; i++)
     {
-        srand(time(0));
         for(int j=0; j<number_of_vector_hash_functions; j++)
         {
-            h_p_result[i][j] = h_function(curves, i, dimension);   // h_function
+            h_p_result[i][j] = h_function(vectors, i, 2*dimension);   // h_function
         }
     }
 
     // Hash table for input file
     int hash_index;
-    int TableSize = input_items_counter / 8;
+    int TableSize = input_items_counter / 6;
     int M = (int)pow(2, 32) - 5;
     struct Hash_Node* hash_tables[TableSize];
 
@@ -1543,7 +1515,7 @@ void frechet_lsh_assign(char** names, int input_items_counter, int dimension, in
         hash_index = 0;
         for(int j=0; j<number_of_vector_hash_functions; j++)
         {
-            hash_index = hash_index + (int)h_p_result[i][j] * r[j];
+            hash_index = hash_index + h_p_result[i][j] * r[j];
         }
         hash_index = hash_index % M;    // mod M
         if(hash_index < 0)
@@ -1603,12 +1575,12 @@ void frechet_lsh_assign(char** names, int input_items_counter, int dimension, in
     while(1)
     {
         counter++;
+        srand(time(0));
         for(int i=0; i<number_of_clusters; i++)
         {
-            srand(time(0));
             for(int j=0; j<number_of_vector_hash_functions; j++)
             {
-                h_q_result[i][j] = h_function(centroid_index, i, dimension);   // h_function
+                h_q_result[i][j] = h_function(centroid_vectors, i, 2*dimension);   // h_function
             }
         }
 
@@ -1668,14 +1640,6 @@ void frechet_lsh_assign(char** names, int input_items_counter, int dimension, in
                 {
                     if(k_ID[m] == hash_tables[q_hash_index[m]]->ID)  // compare the IDs
                     {
-                        // // calculate distance
-                        // int dist = 0;
-                        // for(int d=1; d<=dimension; d++)
-                        // {
-                        //     dist = dist + pow((centroid_index[m][d] - curves[hash_tables[q_hash_index[m]]->item][d-1]), 2);
-                        // }
-                        // dist = sqrt(dist);
-
                         // calculate distance
                         for(int i=0; i<dimension; i++)
                             for(int j=0; j<dimension; j++)
@@ -1708,11 +1672,6 @@ void frechet_lsh_assign(char** names, int input_items_counter, int dimension, in
                                             if(hash_tables[q_hash_index[m]]->item == radius[i][k])
                                             {
                                                 int sec_dist = 0;
-                                                // for(int d=1; d<=dimension; d++) // calculate distance of the other
-                                                // {
-                                                //     sec_dist = sec_dist + pow((centroid_index[i][d] - curves[hash_tables[q_hash_index[m]]->item][d-1]), 2);
-                                                // }
-                                                // sec_dist = sqrt(sec_dist);
                                                 for(int i=0; i<dimension; i++)
                                                     for(int j=0; j<dimension; j++)
                                                         distance[i][j] = -1;
@@ -1755,7 +1714,7 @@ void frechet_lsh_assign(char** names, int input_items_counter, int dimension, in
             R = R * 2;  // or double the radius and continue
         }
         // Fix the new centroids
-        srand((unsigned int)time(NULL));
+        srand(time(0));
         for(int i=0; i<number_of_clusters; i++)
         {
             centroid_index[i][0] = i;
@@ -1774,29 +1733,8 @@ void frechet_lsh_assign(char** names, int input_items_counter, int dimension, in
             }
         }
 
-        // counter = 0;
-        // for(int i=0; i<number_of_clusters; i++)     // if two centroids are the same for 2 rounds
-        // {
-        //     for(int z=1; z<dimension; z++)
-        //     {
-        //         if(previous_centroid_index[i][z] != centroid_index[i][z])
-        //         {
-        //             counter++;
-        //         }
-        //         previous_centroid_index[i][z] = centroid_index[i][z];
-        //     }
-        // }
         if(counter > 10)  // then break
-        {
             break;
-        }
-        // for(int i=0; i<number_of_clusters; i++)
-        // {
-        //     printf("\n\n");
-        //     for(int j=0; j<dimension; j++)
-        //         printf("%f ", centroid_index[i][j]);
-        // }
-        // exit(1);
     }
 
     int count = 0;
@@ -1808,7 +1746,7 @@ void frechet_lsh_assign(char** names, int input_items_counter, int dimension, in
         {
             for(int i=0; i<j[m]; i++)
             {
-                if(curves[k][0] == radius[m][i])
+                if(k == radius[m][i])
                 {
                     centroids[k] = m;
                     count++;
@@ -1841,7 +1779,7 @@ void frechet_lsh_assign(char** names, int input_items_counter, int dimension, in
             for(int i=0; i<dimension; i++)
                 fprintf(output_file_ptr, "%f ", centroid_index[m][i]);
             for(int i=0; i<j[m]; i++)
-                fprintf(output_file_ptr, ", %d", radius[m][i]);
+                fprintf(output_file_ptr, ", %s", names[radius[m][i]]);
             fprintf(output_file_ptr, "}\n\n");
         }
     }
@@ -1898,39 +1836,25 @@ void frechet_lsh_assign(char** names, int input_items_counter, int dimension, in
             clust = centroids[i];
             for(int k=0; k<j[clust]-1; k++)
             {
-                dist = 0;
-                for(int d=1; d<=dimension; d++)
-                {
-                    dist = dist + pow((curves[i][d-1] - curves[radius[clust][k]][d-1]), 2);   // distance for every item
-                }
-                dist = sqrt(dist);
-
-                // for(int i=0; i<dimension; i++)
-                //     for(int j=0; j<dimension; j++)
-                //         distance[i][j] = -1;
-                // dist = distance_computation(distance, dimension, curves, centroid_index, i, radius[clust][k]);
+                for(int i=0; i<dimension; i++)
+                    for(int j=0; j<dimension; j++)
+                        distance[i][j] = -1;
+                dist = distance_computation(distance, dimension, curves, curves, i, radius[clust][k]);
                 sum = sum + dist;
             }
-            printf("ss\n");
-
             if(j[clust] == 0)
                 a_i = 1;
             else
                 a_i = sum / j[clust];   // average
+
             sum = 0;
             clust = min_ind[clust];     // closest centroid
             for(int k=0; k<j[clust]-1; k++)
             {
-                dist = 0;
-                for(int d=1; d<=dimension; d++)
-                {
-                    dist = dist + pow((curves[i][d-1] - curves[radius[clust][k]][d-1]), 2);
-                }
-                dist = sqrt(dist);
-                // for(int i=0; i<dimension; i++)
-                //     for(int j=0; j<dimension; j++)
-                //         distance[i][j] = -1;
-                // dist = distance_computation(distance, dimension, curves, curves, i, radius[clust][k]);
+                for(int i=0; i<dimension; i++)
+                    for(int j=0; j<dimension; j++)
+                        distance[i][j] = -1;
+                dist = distance_computation(distance, dimension, curves, curves, i, radius[clust][k]);
                 sum = sum + dist;
             }
             if(j[clust] == 0)
@@ -1974,21 +1898,21 @@ void frechet_lsh_assign(char** names, int input_items_counter, int dimension, in
         fprintf(output_file_ptr, "%f]\n\n\n", total_average_sil);
     }
 
-    // free memory
-    for(int i=0; i<input_items_counter; i++)
-    {
-        free(h_p_result[i]);
-    }
-    free(h_p_result);
-    for(int i=0; i<number_of_clusters; i++)
-    {
-        free(previous_centroid_index[i]);
-        // free(radius[i]);
-        free(h_q_result[i]);
-    }
-    free(previous_centroid_index);
-    // free(radius);
-    free(h_q_result);
+    // // free memory
+    // for(int i=0; i<input_items_counter; i++)
+    // {
+    //     free(h_p_result[i]);
+    // }
+    // free(h_p_result);
+    // for(int i=0; i<number_of_clusters; i++)
+    // {
+    //     free(previous_centroid_index[i]);
+    //     // free(radius[i]);
+    //     free(h_q_result[i]);
+    // }
+    // free(previous_centroid_index);
+    // // free(radius);
+    // free(h_q_result);
 }
 
 
