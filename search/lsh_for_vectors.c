@@ -74,6 +74,7 @@ void lsh_for_vectors(int input_items_counter, char** names, int query_items_coun
             hash_tables[hash_index]->next->ID = ID;
             hash_tables[hash_index] = temp;
         }
+        
     }
 
     float** h_q_result = malloc(sizeof(float*) * query_items_counter); // array with the results of the h function
@@ -197,7 +198,7 @@ void lsh_for_vectors(int input_items_counter, char** names, int query_items_coun
     free(h_q_result);
     free(data_item->name);
     free(data_item);
-    free(temp);
+
     free(nearest_neighbor);
     
     

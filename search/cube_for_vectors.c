@@ -135,20 +135,20 @@ void cube_for_vectors(int input_items_counter, char** names, int query_items_cou
                 {
                     cp=0;
                     int hdi=hammingDistance(hash_index,t);
-                        if((k_ID == hash_tables[hash_index]->ID || hdi<=probes ) && cp<=M)  // compare the IDs or haming distance <=probes and counter of points<=M
+                    if((k_ID == hash_tables[hash_index]->ID || hdi<=probes ) && cp<=M)  // compare the IDs or haming distance <=probes and counter of points<=M
                     {
-                    float dist = 0;
-                    for(int d=1; d<=dimension; d++)
-                    {
-                        dist = dist + pow((query_curves[m][d] - curves[hash_tables[hash_index]->item][d]), 2);
+                        float dist = 0;
+                        for(int d=1; d<=dimension; d++)
+                        {
+                            dist = dist + pow((query_curves[m][d] - curves[hash_tables[hash_index]->item][d]), 2);
+                        }
+                        dist = sqrt(dist);
+                        if(dist < min_dist) // minimun LSH distance
+                        {
+                            min_dist = dist;
+                            memcpy(nearest_neighbor, names[hash_tables[hash_index]->item], sizeof(char*) + 1);
+                        }
                     }
-                    dist = sqrt(dist);
-                    if(dist < min_dist) // minimun LSH distance
-                    {
-                        min_dist = dist;
-                        memcpy(nearest_neighbor, names[hash_tables[hash_index]->item], sizeof(char*) + 1);
-                    }
-                }
                 hash_tables[hash_index] = hash_tables[hash_index]->next;        
             }
             
@@ -223,11 +223,9 @@ void cube_for_vectors(int input_items_counter, char** names, int query_items_cou
 
     free(a);
     free(a1);
-    free(temp);
 
     free(data_item->name);
     free(data_item);
-    free(temp1);
     free(nearest_neighbor);
     
 }

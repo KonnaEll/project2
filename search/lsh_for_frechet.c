@@ -286,7 +286,7 @@ void lsh_for_frechet(double** vectors, int input_items_counter, char** names, do
 
     free(data_item->name);
     free(data_item);
-    free(temp);
+
     free(nearest_neighbor);
     
 
