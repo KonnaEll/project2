@@ -39,6 +39,8 @@ void lsh_for_vectors(int input_items_counter, char** names, int query_items_coun
     {
         r[i] = rand() % 10;  // r for g function
     }
+    struct Hash_Node* data_item ;
+    struct Hash_Node* temp;
     for(int i=0; i<input_items_counter; i++)
     {
         hash_index = 0;
@@ -53,9 +55,9 @@ void lsh_for_vectors(int input_items_counter, char** names, int query_items_coun
         }
         ID = hash_index;
         hash_index = hash_index % TableSize;    // mod TableSize
-        struct Hash_Node* data_item = (struct Hash_Node*)malloc(sizeof(struct Hash_Node));  // new node
+        data_item = (struct Hash_Node*)malloc(sizeof(struct Hash_Node));  // new node
         data_item->name = malloc(sizeof(char*) + 1);
-        data_item->name = names[i];    // fill it
+        memcpy(data_item->name, names[i], sizeof(char*) + 1);   // fill it
         data_item->item = i;
         if(hash_tables[hash_index] == NULL)  // put it in the list if list is empty
         {
@@ -63,7 +65,7 @@ void lsh_for_vectors(int input_items_counter, char** names, int query_items_coun
         }
         else    // put it after the last node of the list
         {
-            struct Hash_Node* temp = hash_tables[hash_index];
+            temp = hash_tables[hash_index];
             while(hash_tables[hash_index]->next != NULL)
             {
                 hash_tables[hash_index] = hash_tables[hash_index]->next;
@@ -88,6 +90,7 @@ void lsh_for_vectors(int input_items_counter, char** names, int query_items_coun
 
     // find the nearest neighbor of each query
     char* nearest_neighbor = malloc(sizeof(char*) + 1);
+    
     fprintf(output_file_ptr, "Hash Table no%d\n", n);
     for(int m=0; m<query_items_counter; m++)    // for every query show the results
     {
@@ -119,7 +122,7 @@ void lsh_for_vectors(int input_items_counter, char** names, int query_items_coun
                 if(dist < min_dist) // minimun LSH distance
                 {
                     min_dist = dist;
-                    nearest_neighbor = names[hash_tables[hash_index]->item];
+                    memcpy(nearest_neighbor, names[hash_tables[hash_index]->item], sizeof(char*) + 1);
                 }
             }
             hash_tables[hash_index] = hash_tables[hash_index]->next;        
@@ -129,6 +132,7 @@ void lsh_for_vectors(int input_items_counter, char** names, int query_items_coun
         // calculate true distance and time
         float true_min_dist = 1000000.0;
         char* true_nearest_neighbor = malloc(sizeof(char*) + 1);
+        
         for(int i=0; i<input_items_counter; i++)
         {
             float dist = 0;
@@ -140,7 +144,7 @@ void lsh_for_vectors(int input_items_counter, char** names, int query_items_coun
             if(dist < true_min_dist && dist >= 0) // minimun LSH distance
             {
                 true_min_dist = dist;
-                true_nearest_neighbor = names[i];
+                memcpy(true_nearest_neighbor, names[i], sizeof(char*) + 1);
             }
         }
 
@@ -163,6 +167,8 @@ void lsh_for_vectors(int input_items_counter, char** names, int query_items_coun
 
             // print true distance
             fprintf(output_file_ptr, "distanceTrue: %f\n", true_min_dist);
+            //free memory 
+            free(true_nearest_neighbor);
         }
         else
         {
@@ -171,4 +177,29 @@ void lsh_for_vectors(int input_items_counter, char** names, int query_items_coun
         }
         fprintf(output_file_ptr, "\n");
     }
-}
+
+    //free memory
+
+
+    for(int i=0; i<input_items_counter; i++)
+    {           
+        free(h_p_result[i]);
+    }
+    free(h_p_result);
+
+
+    for(int i=0; i<query_items_counter; i++)
+    {   
+        free(h_q_result[i]);
+    }
+
+    
+    free(h_q_result);
+    free(data_item->name);
+    free(data_item);
+    free(temp);
+    free(nearest_neighbor);
+    
+    
+
+} 

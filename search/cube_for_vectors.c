@@ -56,15 +56,18 @@ void cube_for_vectors(int input_items_counter, char** names, int query_items_cou
 
     int ID;
     // we put them in hash table
+    struct Hash_Node* data_item;
+    struct Hash_Node* temp;
     for(int i=0; i<input_items_counter; i++)
     {
         hash_index =a[i];
         ID=hash_index;
         hash_index= con(a[i],k);
-        struct Hash_Node* data_item = (struct Hash_Node*)malloc(sizeof(struct Hash_Node));
+        data_item = (struct Hash_Node*)malloc(sizeof(struct Hash_Node));
+        data_item->name = malloc(sizeof(char*) + 1);
+        memcpy(data_item->name, names[i], sizeof(char*) + 1);   
         data_item->item = i;
         data_item->ID = ID;
-        data_item->name=names[i];
         if(hash_tables[hash_index] == NULL)
         {
             hash_tables[hash_index] = data_item;
@@ -72,7 +75,7 @@ void cube_for_vectors(int input_items_counter, char** names, int query_items_cou
         }
         else
         {
-            struct Hash_Node* temp = hash_tables[hash_index];
+            temp = hash_tables[hash_index];
             while(hash_tables[hash_index]->next != NULL)
             {
                 hash_tables[hash_index] = hash_tables[hash_index]->next;
@@ -115,17 +118,18 @@ void cube_for_vectors(int input_items_counter, char** names, int query_items_cou
 
     int * a1=h_p(f1,k,query_items_counter);
 
-    struct Hash_Node* temp;
+    struct Hash_Node* temp1;
+    char * nearest_neighbor =malloc(sizeof(char*)+1);
+    
     for(int m=0; m<query_items_counter; m++)    // for every query show the results
     {
             hash_index= a1[m];
             int k_ID=hash_index;
             hash_index= con(a1[m],k);
             float min_dist = 1000000.0;
-            char * nearest_neighbor =malloc(sizeof(char*)+1);
-            temp = hash_tables[hash_index];
+            temp1 = hash_tables[hash_index];
             int cp;
-            hash_tables[hash_index] = temp;
+            hash_tables[hash_index] = temp1;
             for(int t=0;t<TableSize;t++){
                 while(hash_tables[hash_index] != NULL)
                 {
@@ -142,14 +146,14 @@ void cube_for_vectors(int input_items_counter, char** names, int query_items_cou
                     if(dist < min_dist) // minimun LSH distance
                     {
                         min_dist = dist;
-                        nearest_neighbor = names[hash_tables[hash_index]->item];
+                        memcpy(nearest_neighbor, names[hash_tables[hash_index]->item], sizeof(char*) + 1);
                     }
                 }
                 hash_tables[hash_index] = hash_tables[hash_index]->next;        
             }
             
         }
-        hash_tables[hash_index] = temp;
+        hash_tables[hash_index] = temp1;
 
         // calculate true distance and time
         float true_min_dist = 1000000.0;
@@ -165,7 +169,7 @@ void cube_for_vectors(int input_items_counter, char** names, int query_items_cou
             if(dist < true_min_dist && dist >= 0) // minimun Hypercube distance
             {
                 true_min_dist = dist;
-                true_nearest_neighbor = names[i];
+                memcpy(true_nearest_neighbor, names[i], sizeof(char*) + 1);
             }
         }
 
@@ -188,6 +192,8 @@ void cube_for_vectors(int input_items_counter, char** names, int query_items_cou
 
             // print true distance
             fprintf(output_file_ptr, "distanceTrue: %f\n", true_min_dist);
+            // free memory
+            free(true_nearest_neighbor);
         }
         else
         {
@@ -196,4 +202,32 @@ void cube_for_vectors(int input_items_counter, char** names, int query_items_cou
         }
         fprintf(output_file_ptr, "\n");
     }
+
+
+    //free memory
+    for(int i=0; i<input_items_counter; i++)
+    {
+        free(f[i]);
+        free(h_p_result[i]);
+    }
+    free(f);
+    free(h_p_result);
+
+    for(int i=0; i<query_items_counter; i++)
+    {
+        free(f1[i]);
+        free(h_q_result[i]);
+    }
+    free(f1);
+    free(h_q_result);
+
+    free(a);
+    free(a1);
+    free(temp);
+
+    free(data_item->name);
+    free(data_item);
+    free(temp1);
+    free(nearest_neighbor);
+    
 }

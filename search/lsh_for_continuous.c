@@ -9,13 +9,14 @@
 #include "lsh_funcs.h"
 #include "lsh_for_frechet.h"
 
+// filter the curves
 double** filtering(double** curves, int input_items_counter, int dimension)
 {
     double** filtered = malloc(sizeof(double*) * input_items_counter);
         for(int i=0; i<input_items_counter; i++)
             filtered[i] = malloc(sizeof(double) * dimension);
 
-    float e = 1;
+    float e = 1;    // small e
     int flag, count, j;
     for(int i=0; i<input_items_counter; i++)
     {
@@ -59,6 +60,7 @@ double** filtering(double** curves, int input_items_counter, int dimension)
     return filtered;
 }
 
+// snapping to 1D grid
 double** grid_to_vector(double** filtered, double delta, int input_items_counter, int dimension)
 {
     double** vector = malloc(sizeof(double*) * input_items_counter);
@@ -78,7 +80,7 @@ double** grid_to_vector(double** filtered, double delta, int input_items_counter
     return vector;
 }
 
-
+// minima and maxima among 3 in the row points and padding
 double** min_max_padding(double** vectors, int input_items_counter, int dimension)
 {
     double** timeseries = malloc(sizeof(double*) * input_items_counter);
@@ -138,7 +140,7 @@ double** min_max_padding(double** vectors, int input_items_counter, int dimensio
 }
 
 
-
+// lsh as usual
 void lsh_for_continuous(double** vectors, int input_items_counter, char** names, double** query_vectors, int query_items_counter, char** query_names, int dimension, double** curves, double** query_curves, FILE* output_file_ptr, int k)
 {
     float** h_p_result = malloc(sizeof(float*) * input_items_counter); // array with the results of the h function
@@ -169,6 +171,8 @@ void lsh_for_continuous(double** vectors, int input_items_counter, char** names,
     {
         r[i] = rand() % 10;  // r for g function
     }
+    struct Hash_Node* data_item;
+    struct Hash_Node* temp;
     for(int i=0; i<input_items_counter; i++)
     {
         hash_index = 0;
@@ -184,9 +188,9 @@ void lsh_for_continuous(double** vectors, int input_items_counter, char** names,
         ID = hash_index;
         hash_index = hash_index % TableSize;    // mod TableSize
 
-        struct Hash_Node* data_item = (struct Hash_Node*)malloc(sizeof(struct Hash_Node));  // new node
+        data_item = (struct Hash_Node*)malloc(sizeof(struct Hash_Node));  // new node
         data_item->name = malloc(sizeof(char*) + 1);
-        data_item->name = names[i];    // fill it
+        memcpy(data_item->name, names[i], sizeof(char*) + 1);   // fill it
         data_item->item = i;
         data_item->ID = ID;
         if(hash_tables[hash_index] == NULL)  // put it in the list if list is empty
@@ -195,7 +199,7 @@ void lsh_for_continuous(double** vectors, int input_items_counter, char** names,
         }
         else    // put it after the last node of the list
         {
-            struct Hash_Node* temp = hash_tables[hash_index];
+            temp = hash_tables[hash_index];
             while(hash_tables[hash_index]->next != NULL)
             {
                 hash_tables[hash_index] = hash_tables[hash_index]->next;
@@ -223,6 +227,7 @@ void lsh_for_continuous(double** vectors, int input_items_counter, char** names,
         distance[i] = malloc(sizeof(float) * dimension);
 
     char* nearest_neighbor = malloc(sizeof(char*) + 1);
+    
     float dist;
     // find the nearest neighbor of each query
     for(int m=0; m<query_items_counter; m++)    // for every query show the results
@@ -241,14 +246,12 @@ void lsh_for_continuous(double** vectors, int input_items_counter, char** names,
         hash_index = hash_index % TableSize;    // mod TableSize
 
         float min_dist = 1000000.0;
-        // struct timeval start, stop;
-        // gettimeofday(&start, 0);
         dist = min_dist;
         while(hash_tables[hash_index] != NULL)
         {
             if(k_ID == hash_tables[hash_index]->ID)  // compare the IDs
             {
-                // calculate distance
+                // calculate distance (discrete frechet)
                 for(int i=0; i<dimension; i++)
                     for(int j=0; j<dimension; j++)
                         distance[i][j] = -1;
@@ -256,22 +259,16 @@ void lsh_for_continuous(double** vectors, int input_items_counter, char** names,
                 if(dist < min_dist) // minimun LSH distance
                 {
                     min_dist = dist;
-                    nearest_neighbor = names[hash_tables[hash_index]->item];
+                    memcpy(nearest_neighbor, names[hash_tables[hash_index]->item], sizeof(char*) + 1);
                 }
             }
             hash_tables[hash_index] = hash_tables[hash_index]->next;
         }
 
-        // gettimeofday(&stop, 0);
-        // long sec = stop.tv_sec - start.tv_sec;
-        // long mic_sec = stop.tv_usec - start.tv_usec;
-        // double lsh_time = sec + mic_sec*1e-6;
-
         // calculate true distance and time
-        float true_min_dist = 1000000.0;
         char* true_nearest_neighbor = malloc(sizeof(char*) + 1);
+        float true_min_dist = 1000000.0;
         dist = true_min_dist;
-        // gettimeofday(&start, 0);
         for(int i=0; i<input_items_counter; i++)
         {
             for(int i=0; i<dimension; i++)
@@ -281,13 +278,9 @@ void lsh_for_continuous(double** vectors, int input_items_counter, char** names,
             if(dist < true_min_dist && dist >= 0) // minimun LSH distance
             {
                 true_min_dist = dist;
-                true_nearest_neighbor = names[i];
+                memcpy(true_nearest_neighbor, names[i], sizeof(char*) + 1);
             }
         }
-        // gettimeofday(&stop, 0);
-        // sec = stop.tv_sec - start.tv_sec;
-        // mic_sec = stop.tv_usec - start.tv_usec;
-        // double true_time = sec + mic_sec*1e-6;
 
         if(min_dist != 1000000.0)
         {
@@ -308,6 +301,8 @@ void lsh_for_continuous(double** vectors, int input_items_counter, char** names,
 
             // print true distance
             fprintf(output_file_ptr, "distanceTrue: %f\n", true_min_dist);
+            //free memory
+            free(true_nearest_neighbor);
         }
         else
         {
@@ -316,4 +311,30 @@ void lsh_for_continuous(double** vectors, int input_items_counter, char** names,
         }
         fprintf(output_file_ptr, "\n");
     }
+
+
+    //free memory
+
+
+    for(int i=0; i<input_items_counter; i++)
+    {           
+        free(h_p_result[i]);
+    }
+    free(h_p_result);
+
+
+    for(int i=0; i<query_items_counter; i++)
+    {   
+        free(h_q_result[i]);
+    }
+
+    
+    free(h_q_result);
+
+    free(data_item->name);
+    free(data_item);
+    free(temp);
+    free(nearest_neighbor);
+    
+
 }

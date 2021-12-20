@@ -1,5 +1,5 @@
 search: search.o lsh_funcs.o cube_funcs.o lsh_for_vectors.o lsh_for_frechet.o lsh_for_continuous.o cube_for_vectors.o
-	gcc -Wall -Werror -std=c9x search.o lsh_funcs.o cube_funcs.o lsh_for_vectors.o lsh_for_frechet.o lsh_for_continuous.o cube_for_vectors.o -o search -lm
+	gcc -Wall -Werror -std=c9x search.o lsh_funcs.o cube_funcs.o lsh_for_vectors.o lsh_for_frechet.o lsh_for_continuous.o cube_for_vectors.o -o search -lm -lcunit
 
 search.o: search.c
 	gcc -Wall -Werror -std=c9x -c search.c

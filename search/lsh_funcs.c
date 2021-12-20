@@ -26,7 +26,7 @@ static float vectors_dot_product(double** p, float* v, int index, int dimension)
 
 float h_function(double** p, int index, int dimension)     // calculation of h function
 {
-    float* v = malloc(sizeof(float) * dimension);
+    float v[dimension];
     for(int i=0; i<dimension; i++)
     {
         v[i] = normal_distribution_number();    // find random v vector that follows the normal distribution
@@ -40,4 +40,3 @@ float h_function(double** p, int index, int dimension)     // calculation of h f
 
     return h_result;
 }
-
